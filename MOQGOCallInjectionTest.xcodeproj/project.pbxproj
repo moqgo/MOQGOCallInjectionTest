@@ -314,6 +314,27 @@
 		};
 /* End XCBuildConfiguration section */
 
+/* Begin XCConfigurationList section */
+		A1B2C3D4E5F600F /* Build configuration list for PBXProject "MOQGOCallInjectionTest" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A1B2C3D4E5F6010 /* Debug */,
+				A1B2C3D4E5F6011 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A1B2C3D4E5F600B /* Build configuration list for PBXNativeTarget "MOQGOCallInjectionTest" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A1B2C3D4E5F6012 /* Debug */,
+				A1B2C3D4E5F6013 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
 	};
 	rootObject = A1B2C3D4E5F600E /* Project object */;
 }
