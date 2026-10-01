@@ -2,7 +2,7 @@
 //  ContentView.swift
 //  MOQGOCallInjectionTest
 //
-//  iPhone Microphone Injection PoC for WhatsApp Voice Call Translation
+//  iPhone Microphone Injection PoC
 //
 
 import SwiftUI
@@ -33,7 +33,7 @@ struct ContentView: View {
 
     private var statusCard: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("鐘舵€?)
+            Text("Status")
                 .font(.headline)
             statusRow(label: "Microphone Injection Permission", value: permissionStatus)
             statusRow(label: "Injection Available", value: injectionAvailable)
@@ -115,7 +115,7 @@ struct ContentView: View {
 
     private var logCard: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("鏃ュ織")
+            Text("Log")
                 .font(.headline)
             Text(logMessage)
                 .font(.system(.caption, design: .monospaced))
@@ -128,33 +128,33 @@ struct ContentView: View {
     }
 
     private func refreshStatus() {
-        logMessage = "鍒锋柊鐘舵€?.."
+        logMessage = "Refreshing status..."
         permissionStatus = "NOT_SUPPORTED"
         injectionAvailable = "UNKNOWN"
         preferredMode = "NOT_SUPPORTED"
-        logMessage += "\n闇€瑕?iOS 18.2+ 鍜?Xcode 16 SDK 鏀寔 Microphone Injection"
+        logMessage += "\nNeed iOS 18.2+ and Xcode 16 SDK"
     }
 
     private func requestPermission() {
-        logMessage += "\n闇€瑕?iOS 18.2+ 鍜?Xcode 16 SDK"
+        logMessage += "\nNeed iOS 18.2+ and Xcode 16 SDK"
     }
 
     private func enableInjection() {
-        logMessage += "\n闇€瑕?iOS 18.2+ 鍜?Xcode 16 SDK"
+        logMessage += "\nNeed iOS 18.2+ and Xcode 16 SDK"
     }
 
     private func disableInjection() {
-        logMessage += "\n闇€瑕?iOS 18.2+ 鍜?Xcode 16 SDK"
+        logMessage += "\nNeed iOS 18.2+ and Xcode 16 SDK"
     }
 
     private func playTestSpeech() {
-        logMessage = "鎾斁娴嬭瘯璇煶..."
+        logMessage = "Playing test speech..."
         let synthesizer = AVSpeechSynthesizer()
         let utterance = AVSpeechUtterance(string: "Hello, this is a MOQGO translation test.")
         utterance.voice = AVSpeechSynthesisVoice(language: "en-US")
         utterance.rate = AVSpeechUtteranceDefaultSpeechRate
         synthesizer.speak(utterance)
-        logMessage += "\n宸叉挱鏀? Hello, this is a MOQGO translation test."
+        logMessage += "\nPlayed: Hello, this is a MOQGO translation test."
     }
 }
 
