@@ -1,2 +1,2 @@
-          retention-days: 90
+          path: build/ipa/*.ipa
           
