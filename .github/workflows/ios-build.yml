@@ -1,19 +1,72 @@
 name: iOS Build
 
-on: [push]
+on:
+  push:
+    branches: [main, fix/ios-microphone-injection]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
   build:
-    runs-on: macos-14
+    runs-on: macos-15
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_16.4.app/Contents/Developer
     steps:
       - uses: actions/checkout@v4
-      - run: xcodebuild build -project MOQGOCallInjectionTest.xcodeproj -scheme MOQGOCallInjectionTest -configuration Release -sdk iphoneos -derivedDataPath build CODE_SIGNING_ALLOWED=NO
-      - run: |
-          APP=$(find build/Build/Products -name "*.app" | head -1)
-          mkdir -p Payload
-          cp -R $APP Payload/
-          zip -r app.ipa Payload
+      - name: Record toolchain and require iOS 18.2 SDK or newer
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts
+          xcodebuild -version | tee artifacts/toolchain.txt
+          SDK_VERSION="$(xcrun --sdk iphoneos --show-sdk-version)"
+          python3 - "$SDK_VERSION" <<'PY'
+          import sys
+          version = tuple(int(part) for part in sys.argv[1].split('.')[:2])
+          assert version >= (18, 2), f'iOS SDK {sys.argv[1]} lacks required injection APIs'
+          PY
+          printf 'iOS SDK: %s\nSource SHA: %s\n' "$SDK_VERSION" "$GITHUB_SHA" >> artifacts/toolchain.txt
+      - name: Compile actual injection implementation for iPhone
+        shell: bash
+        run: |
+          set -euo pipefail
+          xcodebuild build \
+            -project MOQGOCallInjectionTest.xcodeproj \
+            -scheme MOQGOCallInjectionTest \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath build/DerivedData \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            ARCHS=arm64 ONLY_ACTIVE_ARCH=NO \
+            CURRENT_PROJECT_VERSION="$GITHUB_RUN_NUMBER" \
+            MARKETING_VERSION=1.1 | tee artifacts/build.log
+      - name: Package and verify unsigned IPA
+        shell: bash
+        run: |
+          set -euo pipefail
+          APP="build/DerivedData/Build/Products/Release-iphoneos/MOQGOCallInjectionTest.app"
+          test -d "$APP"
+          /usr/libexec/PlistBuddy -c "Add :MOQGOBuildSourceSHA string $GITHUB_SHA" "$APP/Info.plist"
+          mkdir -p build/ipa/Payload
+          cp -R "$APP" build/ipa/Payload/
+          (cd build/ipa && zip -qr "$GITHUB_WORKSPACE/artifacts/MOQGOCallInjectionTest-unsigned.ipa" Payload)
+          python3 scripts/verify_ipa.py artifacts/MOQGOCallInjectionTest-unsigned.ipa \
+            --source-sha "$GITHUB_SHA" --report artifacts/package-report.json
+          shasum -a 256 artifacts/MOQGOCallInjectionTest-unsigned.ipa > artifacts/SHA256SUMS.txt
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
-          name: ipa
-          path: app.ipa
+          name: MOQGOCallInjectionTest-build-${{ github.run_number }}
+          path: artifacts/
+          if-no-files-found: error
+          retention-days: 90
+      - name: State validation boundary
+        run: |
+          printf '%s\n' 'COMPILE: PASS' 'IPA_STRUCTURE: PASS' 'SIGNING: NOT_DONE' 'IPHONE_INSTALL: NOT_TESTED' 'WHATSAPP_INJECTION: NOT_TESTED' 'WINDOWS_REALTIME_BRIDGE: NOT_IMPLEMENTED' 'REMOTE_AUDIO_CAPTURE: NOT_IMPLEMENTED' >> "$GITHUB_STEP_SUMMARY"
