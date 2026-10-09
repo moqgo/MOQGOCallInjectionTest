@@ -1,137 +1,57 @@
-# GitHub Actions 云编译教程（不用 Mac）
+# 原仓库云编译和免费安装
 
-## 原理
-GitHub 提供免费的 macOS 虚拟机，自动帮你编译 iOS App。你只需要把代码传到 GitHub，它自动编译出 IPA。
+继续使用 https://github.com/moqgo/MOQGOCallInjectionTest ，不要创建新仓库。
 
----
+## 更新原仓库
 
-## 你需要准备
+替换修复包中的文件，并新增 scripts/verify_ipa.py。真正生效的工作流是根目录的 .github/workflows/ios-build.yml；原先位于多重嵌套目录的同名 yml 不会被 GitHub 执行，可按补丁删除。
 
-1. **GitHub 账号**（免费注册：https://github.com/signup）
-2. **Apple ID**（你 iPhone 登录的那个）
-3. **Windows 电脑**（用来操作 GitHub）
+网页操作：逐个打开已有文件 > 编辑 > 替换内容 > Commit changes。新文件用 Add file > Create new file，输入 scripts/verify_ipa.py。不要把替换文件包中的文件夹当作新的顶层项目上传，也不要把补丁压缩包直接上传当源码。
 
----
+使用 Git 时，在原项目工作目录执行：
 
-## 第一步：创建 GitHub 仓库
-
-1. 打开 https://github.com/new
-2. Repository name 填：`MOQGOCallInjectionTest`
-3. 选 **Public**（公开，免费额度才够）
-4. 勾选 **Add a README file**
-5. 点 **Create repository**
-
----
-
-## 第二步：上传代码
-
-### 方法 A：网页上传（最简单）
-
-1. 在你的仓库页面，点 **Add file** → **Upload files**
-2. 把整个 `MOQGOCallInjectionTest` 文件夹里的所有文件拖进去
-   - 包括 `.github` 文件夹（隐藏文件夹，要显示隐藏文件才能看到）
-   - `MOQGOCallInjectionTest.xcodeproj` 文件夹
-   - `MOQGOCallInjectionTest` 文件夹
-   - 所有 `.md` 文件
-3. 点 **Commit changes**
-
-### 方法 B：Git 命令行（如果你会用）
-
-```bash
-cd MOQGOCallInjectionTest
-git init
-git add .
-git commit -m "initial commit"
-git remote add origin https://github.com/你的用户名/MOQGOCallInjectionTest.git
-git branch -M main
-git push -u origin main
+```powershell
+git fetch origin
+git switch -c fix/ios-microphone-injection origin/main
+git apply --check .\MOQGOCallInjectionTest-fix.patch
+git apply .\MOQGOCallInjectionTest-fix.patch
+git diff --check
+git add .gitignore MOQGOCallInjectionTest/ContentView.swift MOQGOCallInjectionTest/Info.plist .github/workflows README.md README_GITHUB_BUILD.md README_MAC_BUILD.md scripts/verify_ipa.py
+git commit -m "Implement microphone injection and verify unsigned IPA packaging"
+git push -u origin fix/ios-microphone-injection
 ```
 
----
+补丁基于 02285d089628cec235dfb2a00f8c5a1a6844a936 的源码状态。若远端已变更，先检查差异，勿强制覆盖。
 
-## 第三步：触发编译
+## 编译和下载
 
-1. 在你的仓库页面，点顶部 **Actions** 标签
-2. 如果看到提示"Workflows aren't being run on this repository yet"，点 **I understand my workflows, go ahead and enable them**
-3. 左侧选 **iOS Build - MOQGOCallInjectionTest**
-4. 点右上角 **Run workflow** 按钮
-5. 选 **main** 分支，点 **Run workflow**
-6. 等 5-10 分钟
+在 fix/ios-microphone-injection 分支提交，不改 main。Actions > iOS Build > 选择新提交的运行，确认分支名和提交 SHA。也可 Run workflow 选择该分支手动触发。新工作流使用 macOS 15 的 Xcode 16.4（iOS 18.5 SDK），并实际检查 SDK >= 18.2。
 
----
+下载 MOQGOCallInjectionTest-build-运行编号 并解压，包含：
 
-## 第四步：下载 IPA
+- MOQGOCallInjectionTest-unsigned.ipa
+- SHA256SUMS.txt
+- package-report.json（结构与二进制接口引用检查）
+- toolchain.txt（Xcode、SDK、提交 SHA）
+- build.log
 
-1. 编译完成后（绿色对勾），点进去
-2. 拉到下面 **Artifacts** 区域
-3. 下载 `MOQGOCallInjectionTest-unsigned-ipa`
-4. 解压得到 `.ipa` 文件
+上传日志的步骤在失败时也会运行。因此有 Artifact 不等于编译成功，务必看整个运行的结论和 package-report.json。不要用第 16 次的旧 app.ipa 验证新功能。
 
----
+## 免费 Windows 安装：Sideloadly
 
-## 第五步：装到 iPhone
+1. 从 https://sideloadly.io/ 下载官方 Windows 版本，按网站说明准备 Apple iTunes/iCloud 组件。不要为了本任务购买 Mac 或开发者账号。
+2. iPhone 用 USB 连接 Windows，解锁，在手机选择信任电脑；先确认 Apple 设备工具能识别手机。
+3. Sideloadly 选择 iPhone，把解压得到的 unsigned.ipa 拖进去，用免费 Apple ID 签名并安装。密码与验证码只在本机官方登录流程输入。
+4. 根据系统提示完成“设置 > 通用 > VPN与设备管理”中的开发者信任；开发安装需开启“设置 > 隐私与安全性 > 开发者模式”，按手机提示重启和确认。
+5. 打开 MOQGO Injection Test，确认新界面有 Import Windows TTS Audio 和 Share Diagnostic Report。
+6. 免费签名通常 7 天有效，按工具提示刷新/重签。iOS 权限与 WhatsApp 支持仍须真机验证。
 
-### 用 AltServer（推荐）
+AltStore Classic + AltServer 也是免费替代，按官方 Windows 指南：https://faq.altstore.io/altstore-classic/how-to-install-altstore-windows 。AltStore PAL 不是这里的任意 IPA 安装路线。
 
-1. Windows 下载 AltServer：https://altstore.io/
-2. 安装并打开 AltServer
-3. iPhone 连电脑，信任此电脑
-4. AltServer 点 **Install AltStore** → 选你的 iPhone
-5. 输入 Apple ID 和密码
-6. 装完后，iPhone 上有 AltStore
-7. 把 IPA 文件发到 iPhone（AirDrop / 微信 / 邮件）
-8. 在 iPhone 上用 AltStore 打开 IPA 安装
+安装失败时保留完整安装日志，记录错误码、工具版本、实际 iOS 版本和驱动能否识别设备；不要仅反复重试。分享前隐藏 Apple ID、UDID、验证码等私人信息。
 
-### 或者用 Sideloadly
+## 重要限制
 
-1. Windows 下载 Sideloadly：https://sideloadly.io/
-2. 打开 Sideloadly
-3. 拖入 IPA 文件
-4. 输入 Apple ID
-5. 点 Start
-6. 自动装到 iPhone
+无签名 IPA 不能直接点开安装。此代码没有新增需付费账号的自定义 entitlement，按苹果示例使用系统服务开关和注入用途说明；免费签名后能否运行仍是安装测试，不能靠源码保证。
 
----
-
-## 重要说明
-
-### 签名有效期
-- 免费 Apple ID 签名的 App **7 天后过期**
-- 7 天后要重新用 AltStore/Sideloadly 签名安装
-- 永久使用需要 $99/年 Apple Developer Program
-
-### Microphone Injection 权限
-- 需要 iOS 18.2+
-- 可能需要额外的 entitlement（权限配置）
-- 真机测试才能确认 WhatsApp 是否支持
-
-### 编译失败怎么办
-1. 看 Actions 页面的红色错误日志
-2. 把错误信息发给我，我帮你修
-
----
-
-## 输出说明
-
-编译完成后，Actions 页面会显示：
-```
-BUILD: PASS
-SIGNING: MISSING  （需要 AltServer/Sideloadly 手动签名）
-IPA PATH: build/ipa/MOQGOCallInjectionTest.ipa
-```
-
----
-
-## 常见问题
-
-**Q: GitHub Actions 免费额度够吗？**
-A: 个人账号每月 2000 分钟 macOS 时间，每次编译约 10 分钟，够你测试很多次。
-
-**Q: 编译要多久？**
-A: 第一次约 8-10 分钟（要下载 Xcode），后续约 5 分钟。
-
-**Q: 编译出的 IPA 能直接装吗？**
-A: 不能。是 unsigned 的，需要 AltServer/Sideloadly 重新签名。
-
-**Q: Microphone Injection 能用吗？**
-A: 必须真机测试才知道。编译成功不代表 API 可用。
+本修复在 Windows 上完成静态检查，尚未重新通过 Xcode 编译。新 Actions 编译成功后也仅证明编译和打包，最终通话结果仍为 NOT_TESTED。
